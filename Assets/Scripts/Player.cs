@@ -21,6 +21,10 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        PlayerMove();
+    }
+
+    void PlayerMove() {
         float horz = System.Math.Sign(Input.GetAxisRaw("Horizontal"));
         float vert = System.Math.Sign(Input.GetAxisRaw("Vertical"));
 
@@ -39,7 +43,7 @@ public class Player : MonoBehaviour
                 // check for collision
                 Vector2 hitSize = Vector2.one * 0.8f;
                 Collider2D hit = Physics2D.OverlapBox(targetPos, hitSize, 0, obstacleMask);
-                Debug.Log(hit);
+
                 if(!hit) {
                     StartCoroutine(Move());
                 }
