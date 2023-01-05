@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 public class DungeonManager : MonoBehaviour
 {
-    public GameObject[] randomItems, randomEnemies;
+    public GameObject[] randomItems, randomEnemies, roundedEdges;
     public GameObject floorPrefab, wallPrefab, tilePrefab, exitPrefab;
     [HideInInspector] public float minX, maxX, minY, maxY;
     public int totalFloorCount;
@@ -13,8 +13,11 @@ public class DungeonManager : MonoBehaviour
     [Range(0, 100)] public int enemySpawnPercent;
     List<Vector3> floorList = new List<Vector3>();
     LayerMask floorMask, wallMask;
+    public bool useRoundedEdges; 
+    Vector2 hitSize;
 
     void Start() {
+        Vector2 hitSize = Vector2.one * 0.8f;
         floorMask = LayerMask.GetMask("Floor");
         wallMask = LayerMask.GetMask("Wall");
         RandomWalker();
@@ -28,26 +31,27 @@ public class DungeonManager : MonoBehaviour
 
     void RandomWalker() {
         Vector3 currentPosition = Vector3.zero;
-        floorList.Add(currentPosition);
         while(floorList.Count < totalFloorCount) {
-        // Debug.Log(floorList.Count);
             switch(Random.Range(1,5)) {
                 case 1: currentPosition += Vector3.up; break;
                 case 2: currentPosition += Vector3.right; break;
                 case 3: currentPosition += Vector3.down; break;
                 case 4: currentPosition += Vector3.left; break;
             }
+
             bool inFloorList = false;
-            for(int i = 0; i > floorList.Count; i++) {
+            for(int i = 0; i < floorList.Count; i++) {
                 if(Vector3.Equals(currentPosition, floorList[i])) {
                     inFloorList = true;
                     break;
                 }
+
             }
             if(!inFloorList) {
                 floorList.Add(currentPosition);
             }
         }
+    
         for(int i = 0; i < floorList.Count; i++) {
             GameObject goTile = Instantiate(tilePrefab, floorList[i], Quaternion.identity) as GameObject;
             goTile.name = tilePrefab.name;
@@ -63,7 +67,6 @@ public class DungeonManager : MonoBehaviour
         }
         ExitDoorway();
 
-        Vector2 hitSize = Vector2.one * 0.8f;
         for(int x = (int)minX - 2; x <= (int)maxX + 2; x++) {
             for(int y = (int)minY - 2; y <= (int)maxY + 2; y++) {
                 Collider2D hitFloor = Physics2D.OverlapBox(new Vector2(x, y), hitSize, 0, floorMask);
@@ -78,7 +81,31 @@ public class DungeonManager : MonoBehaviour
                         GenerateEnemies(hitFloor, hitTop, hitRight, hitBottom, hitLeft);
                     }
                 }
+                GenerateRoundedEdges(x, y);       
             }   
+        }
+    }
+
+    void GenerateRoundedEdges(int x, int y) {
+        if(useRoundedEdges) {
+            Collider2D hitWall = Physics2D.OverlapBox(new Vector2(x, y), hitSize, 0, wallMask);
+            Debug.Log(hitWall);
+            if(hitWall) {
+                Collider2D hitTop = Physics2D.OverlapBox(new Vector2(x, y + 1), hitSize, 0, wallMask);
+                Collider2D hitRight = Physics2D.OverlapBox(new Vector2(x + 1, y), hitSize, 0, wallMask);
+                Collider2D hitBottom = Physics2D.OverlapBox(new Vector2(x, y - 1), hitSize, 0, wallMask);
+                Collider2D hitLeft = Physics2D.OverlapBox(new Vector2(x - 1, y), hitSize, 0, wallMask);
+                int bitVal = 0;
+                if(!hitTop) bitVal += 1;
+                if(!hitRight) bitVal += 2;
+                if(!hitBottom) bitVal += 4;
+                if(!hitLeft) bitVal += 8;
+                if(bitVal > 0) {
+                    GameObject goEdge = Instantiate(roundedEdges[bitVal], new Vector2(x, y), Quaternion.identity) as GameObject;
+                    goEdge.name = roundedEdges[bitVal].name;
+                    goEdge.transform.SetParent(hitWall.transform);
+                }
+            }
         }
     }
 
